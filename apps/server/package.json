@@ -1,0 +1,16 @@
+{
+  "name": "@collab/server",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch src/index.js",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@collab/shared": "*"
+  },
+  "devDependencies": {
+    "eslint": "^9.39.1"
+  }
+}
