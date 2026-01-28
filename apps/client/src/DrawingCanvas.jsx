@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import { useRef } from "react";
 
 function resize(canvas, ctx) {
@@ -24,6 +24,8 @@ function DrawingCanvas({ tool, color }) {
     const ctxRef = useRef(null);
     const drawingRef = useRef(false);
     const lastPointRef = useRef({ x: 0, y: 0 });
+    const [strokes, setStrokes] = useState([]);
+    const currentStroke = useRef(null);
 
     useLayoutEffect(() => {
         const canvas = canvasRef.current;
@@ -53,6 +55,10 @@ function DrawingCanvas({ tool, color }) {
         }
     }, [tool, color]);
 
+    useEffect(() => {
+        console.log("strokes updated:", strokes);
+    }, [strokes]);
+
     
     function getPoint(e) {
         const canvas = canvasRef.current;
@@ -66,10 +72,20 @@ function DrawingCanvas({ tool, color }) {
     function start(e) {
         const ctx = ctxRef.current;
         if (!ctx) return;
+       
 
+        canvasRef.current.setPointerCapture(e.pointerId);
         const p = getPoint(e);
         drawingRef.current = true;
         lastPointRef.current = p;
+        const strk = {
+            id: Date.now(),
+            tool: tool,
+            color: ctx.strokeStyle,
+            width: ctx.lineWidth,
+            points: [p],
+        }
+        currentStroke.current = strk;
 
         ctx.beginPath();
         ctx.moveTo(p.x, p.y);
@@ -77,6 +93,7 @@ function DrawingCanvas({ tool, color }) {
 
     function move(e) {
         if (!drawingRef.current) return;
+        if (!currentStroke.current) return
 
         const ctx = ctxRef.current;
         if (!ctx) return;
@@ -84,11 +101,18 @@ function DrawingCanvas({ tool, color }) {
         const p = getPoint(e);
         ctx.lineTo(p.x, p.y);
         ctx.stroke();
+        currentStroke.current.points.push(p);
 
         lastPointRef.current = p;
     }
 
-    function end() {
+    function end(e) {
+        canvasRef.current.releasePointerCapture(e.pointerId);
+        if (currentStroke.current) {
+            const stroke = currentStroke.current;
+            setStrokes((prev) => [...prev, stroke]);
+            currentStroke.current = null;
+        }
         drawingRef.current = false;
     }
 
