@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useReducer } from "react";
 import { useRef } from "react";
 
 function resize(canvas, ctx) {
@@ -9,14 +9,8 @@ function resize(canvas, ctx) {
     canvas.height = Math.round(rect.height * dpr);
 
     // Reset transform each resize then scale for DPR.
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.scale(dpr, dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    // Set drawing style (in CSS pixels).
-    // ctx.lineWidth = 3;
-    // ctx.lineCap = "round";
-    // ctx.lineJoin = "round";
-    // ctx.strokeStyle = "#111";
 }
 
 function DrawingCanvas({ tool, color }) {
@@ -24,7 +18,11 @@ function DrawingCanvas({ tool, color }) {
     const ctxRef = useRef(null);
     const drawingRef = useRef(false);
     const lastPointRef = useRef({ x: 0, y: 0 });
-    const [strokes, setStrokes] = useState([]);
+    const [strokeState, dispatch] = useReducer(strokeReducer, {
+        strokes: [],
+        redoStack: [],
+        lastAction: null,
+    });
     const currentStroke = useRef(null);
 
     useLayoutEffect(() => {
@@ -56,9 +54,67 @@ function DrawingCanvas({ tool, color }) {
     }, [tool, color]);
 
     useEffect(() => {
-        console.log("strokes updated:", strokes);
-    }, [strokes]);
+        function onKeyDown(e) {
+            const target = e.target;
+            const tagName = target && target.tagName ? target.tagName.toLowerCase() : "";
+            if (tagName === "input" || tagName === "textarea" || target?.isContentEditable) {
+                return;
+            }
 
+            const isMod = e.ctrlKey || e.metaKey;
+            if (!isMod) return;
+
+            const key = e.key.toLowerCase();
+            if (key === "z") {
+                e.preventDefault();
+                dispatch({ type: "undo" });
+                return;
+            }
+
+            if (key === "y") {
+                e.preventDefault();
+                dispatch({ type: "redo" });
+            }
+        }
+
+        window.addEventListener("keydown", onKeyDown);
+        return () => window.removeEventListener("keydown", onKeyDown);
+    }, []);
+
+
+    function clearCanvas() {
+        const canvas = canvasRef.current;
+        const ctx = ctxRef.current;
+        if (!canvas || !ctx) return;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function draw() {
+        const ctx = ctxRef.current;
+        if (!ctx) return;
+
+        strokeState.strokes.forEach((stroke) => {
+            ctx.beginPath();
+            ctx.lineWidth = stroke.width;
+            ctx.strokeStyle = stroke.color;
+            ctx.lineCap = stroke.tool === "brush" ? "round" : "square";
+            ctx.lineJoin = stroke.tool === "brush" ? "round" : "square";
+            const points = stroke.points;
+            if (points.length > 0) {
+                ctx.moveTo(points[0].x, points[0].y);
+                for (let i = 1; i < points.length; i++) {
+                    ctx.lineTo(points[i].x, points[i].y);
+                }
+                ctx.stroke();
+            }
+        });
+    }
+    useEffect(() => {
+        if (strokeState.lastAction === "redo" || strokeState.lastAction === "undo") {
+            clearCanvas();
+            draw();
+        }
+    }, [strokeState.strokes]);   
     
     function getPoint(e) {
         const canvas = canvasRef.current;
@@ -110,7 +166,7 @@ function DrawingCanvas({ tool, color }) {
         canvasRef.current.releasePointerCapture(e.pointerId);
         if (currentStroke.current) {
             const stroke = currentStroke.current;
-            setStrokes((prev) => [...prev, stroke]);
+            dispatch({ type: "add-stroke", stroke });
             currentStroke.current = null;
         }
         drawingRef.current = false;
@@ -130,3 +186,41 @@ function DrawingCanvas({ tool, color }) {
 }
 
 export default DrawingCanvas;
+
+function strokeReducer(state, action) {
+    switch (action.type) {
+        case "add-stroke":
+            return {
+                strokes: [...state.strokes, action.stroke],
+                redoStack: [],
+                lastAction: "add-stroke"
+            };
+        case "undo": {
+            if (state.strokes.length === 0) return state;
+            const nextStrokes = state.strokes.slice(0, -1);
+            const undone = state.strokes[state.strokes.length - 1];
+            return {
+                strokes: nextStrokes,
+                redoStack: [undone, ...state.redoStack],
+                lastAction: "undo"
+            };
+        }
+        case "redo": {
+            if (state.redoStack.length === 0) return state;
+            const [restored, ...remaining] = state.redoStack;
+            return {
+                strokes: [...state.strokes, restored],
+                redoStack: remaining,
+                lastAction: "redo"
+            };
+        }
+        case "clear":
+            return {
+                strokes: [],
+                redoStack: [],
+                lastAction: null
+            };
+        default:
+            return state;
+    }
+}
