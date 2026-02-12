@@ -1,5 +1,4 @@
-import { useEffect, useLayoutEffect, useReducer } from "react";
-import { useRef } from "react";
+import { useEffect, useLayoutEffect,useRef } from "react";
 
 function resize(canvas, ctx) {
     const dpr = window.devicePixelRatio || 1;
@@ -13,16 +12,11 @@ function resize(canvas, ctx) {
 
 }
 
-function DrawingCanvas({ tool, color }) {
+export default function DrawingCanvas({ canvasState, dispatch , tool, color }) {
     const canvasRef = useRef(null);
     const ctxRef = useRef(null);
     const drawingRef = useRef(false);
     const lastPointRef = useRef({ x: 0, y: 0 });
-    const [strokeState, dispatch] = useReducer(strokeReducer, {
-        strokes: [],
-        redoStack: [],
-        lastAction: null,
-    });
     const currentStroke = useRef(null);
 
     useLayoutEffect(() => {
@@ -93,8 +87,9 @@ function DrawingCanvas({ tool, color }) {
         const ctx = ctxRef.current;
         if (!ctx) return;
 
-        strokeState.strokes.forEach((stroke) => {
+        canvasState.strokes.forEach((stroke) => {
             ctx.beginPath();
+         
             ctx.lineWidth = stroke.width;
             ctx.strokeStyle = stroke.color;
             ctx.lineCap = stroke.tool === "brush" ? "round" : "square";
@@ -110,11 +105,11 @@ function DrawingCanvas({ tool, color }) {
         });
     }
     useEffect(() => {
-        if (strokeState.lastAction === "redo" || strokeState.lastAction === "undo") {
+        if (canvasState.lastAction === "redo" || canvasState.lastAction === "undo" || canvasState.lastAction === "set-strokes") {
             clearCanvas();
             draw();
         }
-    }, [strokeState.strokes]);   
+    }, [canvasState.strokes]);   
     
     function getPoint(e) {
         const canvas = canvasRef.current;
@@ -173,54 +168,16 @@ function DrawingCanvas({ tool, color }) {
     }
 
     return (
-        <canvas
-            ref={canvasRef}
-            onPointerDown={start}
-            onPointerMove={move}
-            onPointerUp={end}
-            onPointerLeave={end}
-            style={{ touchAction: "none" }}
-            className="w-screen h-screen cursor-crosshair"
-        />
+        <>
+            <canvas
+                ref={canvasRef}
+                onPointerDown={start}
+                onPointerMove={move}
+                onPointerUp={end}
+                onPointerLeave={end}
+                style={{ touchAction: "none" }}
+                className="w-screen h-screen cursor-crosshair"
+            />
+        </>
     );
-}
-
-export default DrawingCanvas;
-
-function strokeReducer(state, action) {
-    switch (action.type) {
-        case "add-stroke":
-            return {
-                strokes: [...state.strokes, action.stroke],
-                redoStack: [],
-                lastAction: "add-stroke"
-            };
-        case "undo": {
-            if (state.strokes.length === 0) return state;
-            const nextStrokes = state.strokes.slice(0, -1);
-            const undone = state.strokes[state.strokes.length - 1];
-            return {
-                strokes: nextStrokes,
-                redoStack: [undone, ...state.redoStack],
-                lastAction: "undo"
-            };
-        }
-        case "redo": {
-            if (state.redoStack.length === 0) return state;
-            const [restored, ...remaining] = state.redoStack;
-            return {
-                strokes: [...state.strokes, restored],
-                redoStack: remaining,
-                lastAction: "redo"
-            };
-        }
-        case "clear":
-            return {
-                strokes: [],
-                redoStack: [],
-                lastAction: null
-            };
-        default:
-            return state;
-    }
 }
