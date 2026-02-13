@@ -3,6 +3,7 @@ import DrawingCanvas from "./DrawingCanvas";
 import { useReducer, useState } from "react";
 import canvasReducer from "./canvasReducer";
 import { getBoard } from "./boardApi";
+import RoomManager from "./RoomManager";
 
 function App() {
     const [tool, setTool] = useState("brush");
@@ -19,10 +20,14 @@ function App() {
         canvasDispatch({ type: "set-strokes", strokes: board.strokes });
     }
 
+    function createRoom(boardId) {
+        return boardId;
+    }
 
     return (
         <>
             <Toolbar tool={tool} setTool={setTool} color={color} setColor={setColor} />
+            <RoomManager onJoinRoom={joinRoom} onCreateRoom={createRoom} />
             <DrawingCanvas canvasState={canvasState} dispatch={canvasDispatch} tool={tool} color={color} />
         </>
     );

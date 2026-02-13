@@ -3,3 +3,7 @@ export async function getBoard(boardId) {
     const data = await board.json();
     return data;
 }
+
+export async function createBoard() {
+    
+}

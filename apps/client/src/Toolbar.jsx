@@ -1,4 +1,4 @@
-function Toolbar({ tool, setTool, color, setColor }) {
+function Toolbar({ tool, setTool, color, setColor, onShare }) {
     function chooseBrush() {
         setTool("brush");
     }
@@ -8,7 +8,8 @@ function Toolbar({ tool, setTool, color, setColor }) {
 
     return (
         <div className="fixed inset-x-0 top-4 flex justify-center">
-            <div className="inline-flex items-center gap-3 rounded-lg bg-white/80 p-2 shadow-sm backdrop-blur">
+            <div className="inline-flex items-start gap-2">
+                <div className="inline-flex items-center gap-3 rounded-lg bg-gray-100/80 p-2 backdrop-blur">
                 {/* Tools */}
                 <div className="inline-flex overflow-hidden rounded-md border border-gray-200">
                     <button
@@ -60,6 +61,7 @@ function Toolbar({ tool, setTool, color, setColor }) {
                             title={c}
                         />
                     ))}
+                </div>
                 </div>
             </div>
         </div>
