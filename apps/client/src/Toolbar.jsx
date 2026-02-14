@@ -1,4 +1,4 @@
-function Toolbar({ tool, setTool, color, setColor, onShare }) {
+function Toolbar({ tool, setTool, color, setColor, setIsRoomManagerOpen}) {
     function chooseBrush() {
         setTool("brush");
     }
@@ -63,6 +63,12 @@ function Toolbar({ tool, setTool, color, setColor, onShare }) {
                     ))}
                 </div>
                 </div>
+                <button
+                    onClick={() => setIsRoomManagerOpen(true)}
+                    className="rounded-md bg-gray-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-gray-800 cursor-pointer"
+                >
+                    Rooms
+                </button>
             </div>
         </div>
     );

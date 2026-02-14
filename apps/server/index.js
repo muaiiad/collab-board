@@ -2,7 +2,6 @@ import express from "express";
 import { createServer } from "http";
 import cors from "cors";
 import { Server } from "socket.io";
-import strokes from "./strokes.js";
 
 
 const boards = {}
@@ -16,22 +15,18 @@ const io = new Server(httpServer, {
 });
 
 app.use(cors({ origin: allowedOrigin }));
-const sampleBoard = {
-    id: "board-test-1",
-    strokes,
-};
-
 app.use(express.json());
 
 app.post("/api/boards/create", (req,res) => {
-    const board = req.body;
+    const canvas = req.body;
+    console.log("request made to create board");
     const makeId = (n = 6) => {
         let s = "";
         while (s.length < n) s += Math.random().toString(36).slice(2);
         return s.slice(0, n);
     };
     const boardId = makeId(6);
-    boards[boardId] = board
+    boards[boardId] = canvas
     console.log(boards);
     res.json({ id: boardId })
 })

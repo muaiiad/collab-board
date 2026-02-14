@@ -1,166 +1,105 @@
 import { useState } from "react";
 
-function generateRoomCode() {
-    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    let code = "";
-    for (let i = 0; i < 5; i++) {
-        const idx = Math.floor(Math.random() * chars.length);
-        code += chars[idx];
-    }
-    return code;
-}
-
-function RoomManager({ onJoinRoom, onCreateRoom }) {
-    const [isOpen, setIsOpen] = useState(false);
-    const [view, setView] = useState("options");
+export default function RoomManager({ onJoinRoom, onCreateRoom , isOpen, setIsOpen}) {
+    const [view, setView] = useState("home");
     const [createdCode, setCreatedCode] = useState("");
     const [joinCode, setJoinCode] = useState("");
-    const [copyLabel, setCopyLabel] = useState("Copy Code");
 
-    function openModal() {
-        setIsOpen(true);
-        setView("options");
-        setCreatedCode("");
-        setJoinCode("");
-        setCopyLabel("Copy Code");
-    }
 
-    function closeModal() {
-        setIsOpen(false);
-    }
-
-    function handleCreateRoom() {
-        const nextCode = generateRoomCode();
-        setCreatedCode(nextCode);
-        setView("created");
-        if (onCreateRoom) {
-            onCreateRoom(nextCode);
-        }
-    }
-
-    async function handleCopyCode() {
-        if (!createdCode || !navigator.clipboard) return;
-        await navigator.clipboard.writeText(createdCode);
-        setCopyLabel("Copied");
-        window.setTimeout(() => setCopyLabel("Copy Code"), 1200);
-    }
-
-    function handleJoinCodeChange(e) {
-        const nextValue = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
-        setJoinCode(nextValue.slice(0, 5));
-    }
-
-    async function handleJoin() {
-        const code = joinCode.trim().toUpperCase();
-        if (!code) return;
-        if (onJoinRoom) {
-            await onJoinRoom(code);
-        }
-        closeModal();
+    let content = null;
+    
+    if (view === "create") {
+        content = (
+            <div className="space-y-3">
+                <h1 className="text-sm font-semibold text-gray-900">Create Room</h1>
+                <p className="rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700">
+                    {createdCode || "Room code will appear here."}
+                </p>
+                <div className="flex items-center gap-2">
+                    <button
+                        type="button"
+                        onClick={() => setCreatedCode(onCreateRoom())}
+                        className="rounded-md bg-gray-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-gray-800 cursor-pointer"
+                    >
+                        Create
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setView("home")}
+                        className="rounded-md border border-gray-300 bg-gray-100 px-3 py-2 text-sm font-medium text-gray-800 transition hover:bg-gray-200 cursor-pointer"
+                    >
+                        Back
+                    </button>
+                </div>
+            </div>
+        );
+    } else if (view === "join") {
+        content = (
+            <div className="space-y-3">
+                <h1 className="text-sm font-semibold text-gray-900">Join Room</h1>
+                <input
+                    type="text"
+                    value={joinCode}
+                    onChange={(e) => setJoinCode(e.target.value)}
+                    placeholder="Enter room code"
+                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none ring-0 placeholder:text-gray-400 focus:border-gray-400"
+                />
+                <div className="flex items-center gap-2">
+                    <button
+                        type="button"
+                        onClick={() => onJoinRoom(joinCode)}
+                        className="rounded-md bg-gray-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-gray-800 cursor-pointer"
+                    >
+                        Join
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setView("home")}
+                        className="rounded-md border border-gray-300 bg-gray-100 px-3 py-2 text-sm font-medium text-gray-800 transition hover:bg-gray-200 cursor-pointer"
+                    >
+                        Back
+                    </button>
+                </div>
+            </div>
+        );
+    } else if (view === "home") {
+        content = (
+            <div className="space-y-2">
+                <button
+                    type="button"
+                    onClick={() => setView("create")}
+                    className="w-full rounded-md bg-gray-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-gray-800 cursor-pointer"
+                >
+                    Create Room
+                </button>
+                <button
+                    type="button"
+                    onClick={() => setView("join")}
+                    className="w-full rounded-md border border-gray-300 bg-gray-100 px-3 py-2 text-sm font-medium text-gray-800 transition hover:bg-gray-200 cursor-pointer"
+                >
+                    Join Room
+                </button>
+            </div>
+        );
     }
 
     return (
         <>
-            <button
-                type="button"
-                onClick={openModal}
-                className="fixed right-4 top-4 z-40 inline-flex h-16 items-center rounded-lg border border-gray-200 bg-white/80 px-6 text-sm text-gray-700 hover:bg-gray-200 cursor-pointer backdrop-blur"
-            >
-                Rooms
-            </button>
-
             {isOpen && (
-                <div
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 p-4"
-                    onClick={closeModal}
-                >
-                    <div
-                        className="relative w-full max-w-sm min-h-64 rounded-lg border border-gray-200 bg-white/80 p-5 shadow-sm backdrop-blur"
-                        onClick={(e) => e.stopPropagation()}
-                    >
+                <div className="fixed right-4 top-20 z-20 w-80 rounded-xl border border-gray-200 bg-gray-100/90 p-4 shadow-lg backdrop-blur">
+                    <div className="mb-3 flex items-center justify-between">
+                        <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Room Manager</p>
                         <button
                             type="button"
-                            onClick={closeModal}
-                            aria-label="Close modal"
-                            className="absolute right-3 top-3 inline-flex h-8 w-8 items-center justify-center rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200 cursor-pointer"
+                            onClick={() => setIsOpen(false)}
+                            className="rounded-md px-2 py-1 text-xs text-gray-600 hover:bg-gray-200 cursor-pointer"
                         >
-                            ×
+                            Close
                         </button>
-
-                        {view === "options" && (
-                            <div className="flex min-h-56 flex-col justify-center gap-3 pt-4">
-                                <h2 className="text-center text-lg font-semibold text-gray-800">Rooms</h2>
-                                <button
-                                    type="button"
-                                    onClick={handleCreateRoom}
-                                    className="h-10 w-full rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-200 cursor-pointer"
-                                >
-                                    Create Room
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setView("join")}
-                                    className="h-10 w-full rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-200 cursor-pointer"
-                                >
-                                    Join Room
-                                </button>
-                            </div>
-                        )}
-
-                        {view === "created" && (
-                            <div className="flex min-h-56 flex-col justify-center gap-3 pt-4">
-                                <h2 className="text-center text-lg font-semibold text-gray-800">Room Created</h2>
-                                <div className="rounded-md bg-gray-100 py-3 text-center text-2xl font-semibold tracking-[0.2em] text-gray-800">
-                                    {createdCode}
-                                </div>
-                                <button
-                                    type="button"
-                                    onClick={handleCopyCode}
-                                    className="h-10 w-full rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-200 cursor-pointer"
-                                >
-                                    {copyLabel}
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={closeModal}
-                                    className="h-10 w-full rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-200 cursor-pointer"
-                                >
-                                    Close
-                                </button>
-                            </div>
-                        )}
-
-                        {view === "join" && (
-                            <div className="flex min-h-56 flex-col justify-center gap-3 pt-4">
-                                <h2 className="text-center text-lg font-semibold text-gray-800">Join Room</h2>
-                                <input
-                                    type="text"
-                                    value={joinCode}
-                                    onChange={handleJoinCodeChange}
-                                    placeholder="Enter room code"
-                                    className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-center uppercase tracking-[0.14em] text-gray-800 outline-none focus:border-gray-500"
-                                />
-                                <button
-                                    type="button"
-                                    onClick={handleJoin}
-                                    className="h-10 w-full rounded-md bg-gray-200 text-sm text-gray-800 hover:bg-gray-300 cursor-pointer"
-                                >
-                                    Join
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setView("options")}
-                                    className="h-10 w-full rounded-md bg-gray-100 text-sm text-gray-700 hover:bg-gray-200 cursor-pointer"
-                                >
-                                    Cancel
-                                </button>
-                            </div>
-                        )}
                     </div>
+                    {content}
                 </div>
             )}
         </>
     );
 }
-
-export default RoomManager;

@@ -8,6 +8,7 @@ import RoomManager from "./RoomManager";
 function App() {
     const [tool, setTool] = useState("brush");
     const [color,setColor] = useState("#111827");
+    const [isRoomManagerOpen, setIsRoomManagerOpen] = useState(false);
     const [canvasState, canvasDispatch] = useReducer(canvasReducer, {
         strokes: [],
         redoStack: [],
@@ -20,14 +21,21 @@ function App() {
         canvasDispatch({ type: "set-strokes", strokes: board.strokes });
     }
 
-    function createRoom(boardId) {
-        return boardId;
+    async function createRoom() {
+        const boardId = await fetch("http://localhost:3000/api/boards/create", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ strokes: canvasState.strokes })
+        });
+        return (await boardId.json())["id"];
     }
 
     return (
         <>
-            <Toolbar tool={tool} setTool={setTool} color={color} setColor={setColor} />
-            <RoomManager onJoinRoom={joinRoom} onCreateRoom={createRoom} />
+            <Toolbar tool={tool} setTool={setTool} color={color} setColor={setColor} setIsRoomManagerOpen={setIsRoomManagerOpen} />
+            <RoomManager onJoinRoom={joinRoom} onCreateRoom={createRoom} isOpen={isRoomManagerOpen} setIsOpen={setIsRoomManagerOpen} />
             <DrawingCanvas canvasState={canvasState} dispatch={canvasDispatch} tool={tool} color={color} />
         </>
     );
