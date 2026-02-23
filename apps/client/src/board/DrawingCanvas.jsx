@@ -7,8 +7,8 @@ function resize(canvas, ctx) {
     canvas.width = Math.round(rect.width * dpr);
     canvas.height = Math.round(rect.height * dpr);
 
-    // Reset transform each resize then scale for DPR.
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    // Reset transform each resize then scale for DPR.
 
 }
 
@@ -18,22 +18,14 @@ export default function DrawingCanvas({ canvasState, dispatch , tool, color, soc
     const drawingRef = useRef(false);
     const lastPointRef = useRef({ x: 0, y: 0 });
     const currentStroke = useRef(null);
+    const strokesRef = useRef(canvasState.strokes);
 
-    useLayoutEffect(() => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-
-        const ctx = canvas.getContext("2d");
-        if (!ctx) return;
-        ctxRef.current = ctx;
-
-        resize(canvas, ctx);
-    }, []);
 
     useEffect(() => {
-        const ctx = canvasRef.current.getContext("2d");
-        if (!ctx) return;
-        ctxRef.current = ctx;
+        strokesRef.current = canvasState.strokes;
+    }, [canvasState.strokes]);
+
+    function applyTool(ctx) {
         if (tool === "brush") {
             ctx.lineWidth = 3;
             ctx.lineCap = "round";
@@ -45,6 +37,12 @@ export default function DrawingCanvas({ canvasState, dispatch , tool, color, soc
             ctx.lineJoin = "square";
             ctx.strokeStyle = "#fff";
         }
+    }
+    useEffect(() => {
+        const ctx = canvasRef.current.getContext("2d");
+        if (!ctx) return;
+        ctxRef.current = ctx;
+        applyTool(ctx);
     }, [tool, color]);
 
     useEffect(() => {
@@ -80,14 +78,15 @@ export default function DrawingCanvas({ canvasState, dispatch , tool, color, soc
         const canvas = canvasRef.current;
         const ctx = ctxRef.current;
         if (!canvas || !ctx) return;
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const rect = canvas.getBoundingClientRect();
+        ctx.clearRect(0, 0, rect.width, rect.height);
     }
 
     function draw() {
         const ctx = ctxRef.current;
         if (!ctx) return;
 
-        canvasState.strokes.forEach((stroke) => {
+        strokesRef.current.forEach((stroke) => {
             ctx.beginPath();
          
             ctx.lineWidth = stroke.width;
@@ -104,6 +103,31 @@ export default function DrawingCanvas({ canvasState, dispatch , tool, color, soc
             }
         });
     }
+
+    useLayoutEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+        ctxRef.current = ctx;
+        const ro = new ResizeObserver(() => {
+            resize(canvas, ctx);
+            applyTool(ctx);
+            clearCanvas();
+            draw();
+        });
+        resize(canvas, ctx);
+        clearCanvas();
+        draw();
+
+        ro.observe(canvas);
+
+        return () => ro.disconnect();
+        
+    }, []);
+
+
     useEffect(() => {
         if (canvasState.lastAction === "redo" || canvasState.lastAction === "undo" || canvasState.lastAction === "set-strokes") {
             clearCanvas();
