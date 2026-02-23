@@ -2,8 +2,9 @@ import express from "express";
 import { createServer } from "http";
 import cors from "cors";
 import { Server } from "socket.io";
+import Queue from "./helpers/queue.js";
 
-
+const strokeQueue = new Queue();
 const boards = {}
 const allowedOrigin = "http://localhost:5173";
 const app = express();
@@ -39,9 +40,24 @@ app.get("/api/boards/:boardId", (req, res) => {
 
 io.on("connection", (socket) => {
     console.log("a user connected", socket.id);
-    socket.on("add-stroke", (stroke) => {
+    socket.on("add-stroke", (res) => {
+        const { stroke, boardId } = res;
+        if (!boards[boardId]) {
+            console.error("Invalid board ID:", boardId);
+            return;
+        }
         console.log("received stroke", stroke.id);
-        socket.broadcast.emit("add-stroke", stroke);
+        boards[boardId].strokes.push(stroke);
+        socket.to(boardId).emit("set-strokes", boards[boardId].strokes);
+    });
+
+    socket.on("join-room", (boardId, callback) => {
+    if (!boards[boardId]) {
+        return callback({ success: false, error: "Invalid board ID" });
+    }
+
+    socket.join(boardId);
+    callback({ success: true, canvas: boards[boardId] });
     });
 });
 

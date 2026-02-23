@@ -1,8 +1,7 @@
 import Toolbar from "./ui/Toolbar.jsx";
-import DrawingCanvas from "./DrawingCanvas";
+import DrawingCanvas from "./board/DrawingCanvas.jsx";
 import { useReducer, useState, useEffect } from "react";
-import canvasReducer from "./canvasReducer";
-import { getBoard } from "./boardApi";
+import canvasReducer from "./board/canvasReducer.js";
 import RoomManager from "./ui/RoomManager.jsx";
 import useSocket from "./hooks/useSocket.js";
 
@@ -44,9 +43,14 @@ function App() {
     }, [socket]);
 
     async function joinRoom(boardId) {
-        const board = await getBoard(boardId);
-        canvasDispatch({ type: "set-strokes", strokes: board.strokes });
-        setCurrentId(boardId);
+        socket.current.emit("join-room", boardId, async (response) => {
+            if (response.success) {
+                canvasDispatch({ type: "set-strokes", strokes: response.canvas.strokes })
+                setCurrentId(boardId)
+            } else {
+                console.error("Failed to join room:", response);
+            }
+        });
     }
 
     async function createRoom() {
@@ -58,9 +62,9 @@ function App() {
             body: JSON.stringify({ strokes: canvasState.strokes })
         });
         const board = await boardId.json();
-        setCurrentId(board.id);
+        joinRoom(board.id);
         return board.id;
-    }
+    };
 
     return (
         <>
@@ -71,7 +75,7 @@ function App() {
                 </div>
             </div>
             <RoomManager onJoinRoom={joinRoom} onCreateRoom={createRoom} isOpen={isRoomManagerOpen} setIsOpen={setIsRoomManagerOpen} />
-            <DrawingCanvas canvasState={canvasState} dispatch={canvasDispatch} tool={tool} color={color} socket={socket} />
+            <DrawingCanvas canvasState={canvasState} dispatch={canvasDispatch} tool={tool} color={color} socket={socket} boardId={currentId} />
         </>
     );
 }

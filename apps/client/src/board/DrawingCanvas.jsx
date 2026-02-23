@@ -12,7 +12,7 @@ function resize(canvas, ctx) {
 
 }
 
-export default function DrawingCanvas({ canvasState, dispatch , tool, color, socket }) {
+export default function DrawingCanvas({ canvasState, dispatch , tool, color, socket, boardId }) {
     const canvasRef = useRef(null);
     const ctxRef = useRef(null);
     const drawingRef = useRef(false);
@@ -162,7 +162,7 @@ export default function DrawingCanvas({ canvasState, dispatch , tool, color, soc
         if (currentStroke.current){
             const stroke = currentStroke.current;
             dispatch({ type: "add-stroke", stroke });
-            socket.current.emit("add-stroke", stroke);
+            socket.current.emit("add-stroke", { stroke, boardId });
             currentStroke.current = null;
         }
         drawingRef.current = false;
