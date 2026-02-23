@@ -1,7 +1,8 @@
 export default function canvasReducer(state, action) {
     switch (action.type) {
         case "add-stroke":
-            console.log(state.strokes);
+            // console.log(state.strokes);
+            
             return {
                 strokes: [...state.strokes, action.stroke],
                 redoStack: [],

@@ -38,7 +38,11 @@ app.get("/api/boards/:boardId", (req, res) => {
 
 
 io.on("connection", (socket) => {
-    // ...
+    console.log("a user connected", socket.id);
+    socket.on("add-stroke", (stroke) => {
+        console.log("received stroke", stroke.id);
+        socket.broadcast.emit("add-stroke", stroke);
+    });
 });
 
 httpServer.listen(3000, () => {

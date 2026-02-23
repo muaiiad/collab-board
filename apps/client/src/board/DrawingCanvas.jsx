@@ -12,7 +12,7 @@ function resize(canvas, ctx) {
 
 }
 
-export default function DrawingCanvas({ canvasState, dispatch , tool, color }) {
+export default function DrawingCanvas({ canvasState, dispatch , tool, color, socket }) {
     const canvasRef = useRef(null);
     const ctxRef = useRef(null);
     const drawingRef = useRef(false);
@@ -130,7 +130,7 @@ export default function DrawingCanvas({ canvasState, dispatch , tool, color }) {
         drawingRef.current = true;
         lastPointRef.current = p;
         const strk = {
-            id: Date.now(),
+            id: crypto.randomUUID(),
             tool: tool,
             color: ctx.strokeStyle,
             width: ctx.lineWidth,
@@ -159,9 +159,10 @@ export default function DrawingCanvas({ canvasState, dispatch , tool, color }) {
 
     function end(e) {
         canvasRef.current.releasePointerCapture(e.pointerId);
-        if (currentStroke.current) {
+        if (currentStroke.current){
             const stroke = currentStroke.current;
             dispatch({ type: "add-stroke", stroke });
+            socket.current.emit("add-stroke", stroke);
             currentStroke.current = null;
         }
         drawingRef.current = false;
