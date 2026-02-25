@@ -29,6 +29,7 @@ export default function DrawingCanvas({ canvasState, dispatch , tool, color, soc
         socket.current.emit("stroke-batch", {
             points: currentBatch.current.points,
             strokeId: currentBatch.current.strokeId,
+            strokeMeta: { tool, color, width: ctxRef.current.lineWidth },
             boardId,
         });
 

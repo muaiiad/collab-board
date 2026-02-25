@@ -52,7 +52,7 @@ io.on("connection", (socket) => {
     });
 
     socket.on("stroke-batch", (data) => {
-        const { points, strokeId, boardId } = data;
+        const { points, strokeId, strokeMeta, boardId } = data;
         if (!points || !strokeId || !boardId) {
             console.error("Invalid batch data:", data);
             return;
@@ -66,6 +66,9 @@ io.on("connection", (socket) => {
             boards[boardId].strokes[strokeId] = { id: strokeId, points: [] };
         }
         boards[boardId].strokes[strokeId].points.push(...points);
+        boards[boardId].strokes[strokeId].tool = strokeMeta.tool;
+        boards[boardId].strokes[strokeId].color = strokeMeta.tool === "eraser" ? "#ffffff" : strokeMeta.color;
+        boards[boardId].strokes[strokeId].width = strokeMeta.width;
         socket.to(boardId).emit("set-strokes", boards[boardId].strokes);
     });
 
