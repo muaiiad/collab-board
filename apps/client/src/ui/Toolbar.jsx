@@ -1,14 +1,65 @@
-function Toolbar({ tool, setTool, color, setColor, setIsRoomManagerOpen}) {
+import { useEffect, useRef } from "react";
+
+function Toolbar({
+    tool,
+    setTool,
+    color,
+    setColor,
+    isRoomManagerOpen,
+    setIsRoomManagerOpen,
+    onRoomsButtonLayout,
+    roomsDisabled = false,
+}) {
+    const roomsButtonRef = useRef(null);
+
+    function emitRoomsButtonLayout() {
+        if (!onRoomsButtonLayout || !roomsButtonRef.current) return;
+        const rect = roomsButtonRef.current.getBoundingClientRect();
+        onRoomsButtonLayout({
+            top: rect.top,
+            right: rect.right,
+        });
+    }
+
     function chooseBrush() {
         setTool("brush");
     }
     function chooseEraser() {
         setTool("eraser");
     }
+    function toggleRooms() {
+        if (roomsDisabled) return;
+        emitRoomsButtonLayout();
+        setIsRoomManagerOpen((prev) => !prev);
+    }
+    function handleRoomsKeyDown(e) {
+        if (roomsDisabled) return;
+        if (e.key === " ") {
+            e.preventDefault();
+            toggleRooms();
+        }
+    }
+
+    useEffect(() => {
+        emitRoomsButtonLayout();
+    }, [isRoomManagerOpen]);
+
+    useEffect(() => {
+        if (!onRoomsButtonLayout) return;
+        function handleReposition() {
+            emitRoomsButtonLayout();
+        }
+        window.addEventListener("resize", handleReposition);
+        window.addEventListener("scroll", handleReposition, true);
+        return () => {
+            window.removeEventListener("resize", handleReposition);
+            window.removeEventListener("scroll", handleReposition, true);
+        };
+    }, [onRoomsButtonLayout]);
 
     return (
         <div className="fixed inset-x-0 top-4 flex justify-center">
-            <div className="inline-flex items-start gap-2">
+            <div className="inline-flex items-stretch gap-2">
                 <div className="inline-flex items-center gap-3 rounded-lg bg-gray-100/80 p-2 backdrop-blur">
                 {/* Tools */}
                 <div className="inline-flex overflow-hidden rounded-md border border-gray-200">
@@ -64,10 +115,23 @@ function Toolbar({ tool, setTool, color, setColor, setIsRoomManagerOpen}) {
                 </div>
                 </div>
                 <button
-                    onClick={() => setIsRoomManagerOpen(true)}
-                    className="rounded-md bg-gray-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-gray-800 cursor-pointer"
+                    ref={roomsButtonRef}
+                    type="button"
+                    onClick={toggleRooms}
+                    onKeyDown={handleRoomsKeyDown}
+                    aria-expanded={isRoomManagerOpen}
+                    aria-controls="rooms-panel"
+                    aria-label={isRoomManagerOpen ? "Close rooms panel" : "Open rooms panel"}
+                    disabled={roomsDisabled}
+                    className={`inline-flex h-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-500 focus-visible:ring-offset-2 ${
+                        roomsDisabled
+                            ? "cursor-not-allowed bg-gray-100 text-gray-400"
+                            : isRoomManagerOpen
+                            ? "bg-gray-200 text-gray-900 shadow-sm"
+                            : "bg-gray-100 text-gray-700 hover:bg-gray-200 active:bg-gray-300"
+                    }`}
                 >
-                    Rooms
+                    <span>Rooms</span>
                 </button>
             </div>
         </div>

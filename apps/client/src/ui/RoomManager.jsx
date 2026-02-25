@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-export default function RoomManager({ onJoinRoom, onCreateRoom , isOpen, setIsOpen}) {
+export default function RoomManager({ onJoinRoom, onCreateRoom , isOpen, setIsOpen, anchor }) {
     const [view, setView] = useState("home");
     const [createdCode, setCreatedCode] = useState("");
     const [joinCode, setJoinCode] = useState("");
@@ -83,10 +83,21 @@ export default function RoomManager({ onJoinRoom, onCreateRoom , isOpen, setIsOp
         );
     }
 
+    const panelStyle = anchor
+        ? {
+            top: `${anchor.top}px`,
+            left: `min(${Math.round(anchor.right + 8)}px, calc(100vw - 21rem))`,
+        }
+        : undefined;
+
     return (
         <>
             {isOpen && (
-                <div className="fixed right-4 top-20 z-20 w-80 rounded-xl border border-gray-200 bg-gray-100/90 p-4 shadow-lg backdrop-blur">
+                <div
+                    id="rooms-panel"
+                    style={panelStyle}
+                    className="fixed z-20 w-80 rounded-xl border border-gray-200 bg-gray-100/90 p-4 shadow-lg backdrop-blur"
+                >
                     <div className="mb-3 flex items-center justify-between">
                         <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Room Manager</p>
                         <button

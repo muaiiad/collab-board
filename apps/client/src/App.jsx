@@ -10,6 +10,7 @@ function App() {
     const [tool, setTool] = useState("brush");
     const [color,setColor] = useState("#111827");
     const [isRoomManagerOpen, setIsRoomManagerOpen] = useState(false);
+    const [roomsAnchor, setRoomsAnchor] = useState(null);
     const [canvasState, canvasDispatch] = useReducer(canvasReducer, {
         strokes: {},
         undoStack: [],
@@ -69,13 +70,27 @@ function App() {
 
     return (
         <>
-            <Toolbar tool={tool} setTool={setTool} color={color} setColor={setColor} setIsRoomManagerOpen={setIsRoomManagerOpen} />
-            <div className="fixed inset-x-0 top-20 flex justify-center">
-                <div className="rounded-md bg-white/80 px-3 py-1 text-sm text-gray-700 shadow-sm backdrop-blur">
+            <Toolbar
+                tool={tool}
+                setTool={setTool}
+                color={color}
+                setColor={setColor}
+                isRoomManagerOpen={isRoomManagerOpen}
+                setIsRoomManagerOpen={setIsRoomManagerOpen}
+                onRoomsButtonLayout={setRoomsAnchor}
+            />
+            <div className="fixed inset-x-0 bottom-0 flex justify-end">
+                <div className={`rounded-md bg-transparent px-3 py-1 text-sm ${currentId != null ? "text-green-800" : "text-gray-700"}`}>
                     Room ID: {currentId ?? "Not connected"}
                 </div>
             </div>
-            <RoomManager onJoinRoom={joinRoom} onCreateRoom={createRoom} isOpen={isRoomManagerOpen} setIsOpen={setIsRoomManagerOpen} />
+            <RoomManager
+                onJoinRoom={joinRoom}
+                onCreateRoom={createRoom}
+                isOpen={isRoomManagerOpen}
+                setIsOpen={setIsRoomManagerOpen}
+                anchor={roomsAnchor}
+            />
             <DrawingCanvas canvasState={canvasState} dispatch={canvasDispatch} tool={tool} color={color} socket={socket} boardId={currentId} />
         </>
     );
