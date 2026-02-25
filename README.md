@@ -1,7 +1,5 @@
-![Whiteboard Demo](assets/logo.png)
-Text drawn in collab board.
+![Whiteboard Demo](assets/logo.png)  
 
----
 # Collaborative Whiteboard
 A simple collaborative whiteboard built using React, Express and Socket.IO
 
