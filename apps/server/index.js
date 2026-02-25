@@ -40,14 +40,44 @@ app.get("/api/boards/:boardId", (req, res) => {
 
 io.on("connection", (socket) => {
     console.log("a user connected", socket.id);
-    socket.on("add-stroke", (res) => {
-        const { stroke, boardId } = res;
+    socket.on("add-stroke", (data) => {
+        const { stroke, boardId } = data;
         if (!boards[boardId]) {
             console.error("Invalid board ID:", boardId);
             return;
         }
         console.log("received stroke", stroke.id);
-        boards[boardId].strokes.push(stroke);
+        boards[boardId].strokes[stroke.id] = stroke;
+        socket.to(boardId).emit("set-strokes", boards[boardId].strokes);
+    });
+
+    socket.on("stroke-batch", (data) => {
+        const { points, strokeId, boardId } = data;
+        if (!points || !strokeId || !boardId) {
+            console.error("Invalid batch data:", data);
+            return;
+        }
+        console.log("received batch for stroke", strokeId, "with", points.length, "points");
+        if (!boards[boardId]) {
+            console.error("Invalid board ID:", boardId);
+            return;
+        }
+        if (!boards[boardId].strokes[strokeId]) {
+            boards[boardId].strokes[strokeId] = { id: strokeId, points: [] };
+        }
+        boards[boardId].strokes[strokeId].points.push(...points);
+        socket.to(boardId).emit("set-strokes", boards[boardId].strokes);
+    });
+
+
+    socket.on("delete-stroke", (data) => {
+        const { id, boardId } = data;
+        if (!boards[boardId]) {
+            console.error("Invalid board ID:", boardId);
+            return;
+        }
+        console.log("deleting stroke", id);
+        delete boards[boardId].strokes[id];
         socket.to(boardId).emit("set-strokes", boards[boardId].strokes);
     });
 

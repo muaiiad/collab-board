@@ -11,7 +11,8 @@ function App() {
     const [color,setColor] = useState("#111827");
     const [isRoomManagerOpen, setIsRoomManagerOpen] = useState(false);
     const [canvasState, canvasDispatch] = useReducer(canvasReducer, {
-        strokes: [],
+        strokes: {},
+        undoStack: [],
         redoStack: [],
         lastAction: null
     }) 
@@ -31,7 +32,7 @@ function App() {
             console.log(currentSocket.id); 
         });
         currentSocket.on("set-strokes", (strokes) => {
-            console.log("received strokes");
+            console.log(strokes);
             canvasDispatch({ type: "set-strokes", strokes });
         });
         return () => {

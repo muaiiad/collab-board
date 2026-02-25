@@ -19,11 +19,47 @@ export default function DrawingCanvas({ canvasState, dispatch , tool, color, soc
     const lastPointRef = useRef({ x: 0, y: 0 });
     const currentStroke = useRef(null);
     const strokesRef = useRef(canvasState.strokes);
+    const timerRef = useRef(null);
+    const currentBatch = useRef({ strokeId: null, points: [] });
+
+    function flushBatch() {
+        if (!currentBatch.current.strokeId) return;
+        if (currentBatch.current.points.length === 0) return;
+        console.log("flushing batch");
+        socket.current.emit("stroke-batch", {
+            points: currentBatch.current.points,
+            strokeId: currentBatch.current.strokeId,
+            boardId,
+        });
+
+        currentBatch.current.points = [];
+    }
+
+    function startFlushLoop() {
+        if (timerRef.current != null) return;
+        
+        timerRef.current = setInterval(() => {
+            if (!drawingRef.current) return;
+            flushBatch();
+        }, 20);
+    }
+    
+    function stopFlushLoop() {
+        // final flush so last points aren’t stuck
+        flushBatch();
+
+        if (timerRef.current != null) {
+            clearInterval(timerRef.current);
+            timerRef.current = null;
+        }
+    }
+
 
 
     useEffect(() => {
         strokesRef.current = canvasState.strokes;
     }, [canvasState.strokes]);
+
 
     function applyTool(ctx) {
         if (tool === "brush") {
@@ -86,7 +122,7 @@ export default function DrawingCanvas({ canvasState, dispatch , tool, color, soc
         const ctx = ctxRef.current;
         if (!ctx) return;
 
-        strokesRef.current.forEach((stroke) => {
+        Object.entries(strokesRef.current).forEach(([id,stroke]) => {
             ctx.beginPath();
          
             ctx.lineWidth = stroke.width;
@@ -127,9 +163,23 @@ export default function DrawingCanvas({ canvasState, dispatch , tool, color, soc
         
     }, []);
 
+    useEffect(() => {
+        if (!canvasState.lastAction || !boardId) return;
+        if (canvasState.lastAction.type === "undo") {
+            socket.current.emit("delete-stroke", { id: canvasState.lastAction.id, boardId });
+        } else if (canvasState.lastAction.type === "redo") {
+            socket.current.emit("add-stroke", { stroke: canvasState.lastAction.stroke, boardId });
+        }
+
+    }, [canvasState.lastAction]);
+
 
     useEffect(() => {
-        if (canvasState.lastAction === "redo" || canvasState.lastAction === "undo" || canvasState.lastAction === "set-strokes") {
+        if (!canvasState.lastAction) return;
+        if (canvasState.lastAction.type === "redo" ||
+            canvasState.lastAction.type === "undo" ||
+            canvasState.lastAction.type === "set-strokes" ||
+            canvasState.lastAction.type === "delete-stroke") {
             clearCanvas();
             draw();
         }
@@ -148,7 +198,7 @@ export default function DrawingCanvas({ canvasState, dispatch , tool, color, soc
         const ctx = ctxRef.current;
         if (!ctx) return;
        
-
+        
         canvasRef.current.setPointerCapture(e.pointerId);
         const p = getPoint(e);
         drawingRef.current = true;
@@ -161,6 +211,9 @@ export default function DrawingCanvas({ canvasState, dispatch , tool, color, soc
             points: [p],
         }
         currentStroke.current = strk;
+        currentBatch.current.strokeId = strk.id;
+        currentBatch.current.points = [p];
+        startFlushLoop();
 
         ctx.beginPath();
         ctx.moveTo(p.x, p.y);
@@ -177,6 +230,7 @@ export default function DrawingCanvas({ canvasState, dispatch , tool, color, soc
         ctx.lineTo(p.x, p.y);
         ctx.stroke();
         currentStroke.current.points.push(p);
+        currentBatch.current.points.push(p);
 
         lastPointRef.current = p;
     }
@@ -189,6 +243,7 @@ export default function DrawingCanvas({ canvasState, dispatch , tool, color, soc
             socket.current.emit("add-stroke", { stroke, boardId });
             currentStroke.current = null;
         }
+        stopFlushLoop();
         drawingRef.current = false;
     }
 
